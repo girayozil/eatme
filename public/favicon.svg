@@ -3,9 +3,6 @@
   <rect x="140" y="100" width="236" height="312" rx="28" fill="#223D26"/>
   <path d="M168 100h-0a28 28 0 0 0-28 28v256a28 28 0 0 0 28 28h12V100z" fill="#152415"/>
   <path d="M324 100h28v70l-14-12-14 12z" fill="#BE6044"/>
-  <g fill="none" stroke="#DEE0AA" stroke-linecap="round" stroke-linejoin="round" stroke-width="16">
-    <path d="M250 168v48a28 28 0 0 0 56 0v-48"/>
-    <path d="M278 168v76"/>
-    <path d="M278 244v112"/>
-  </g>
+  <ellipse cx="278" cy="196" rx="32" ry="44" fill="#DEE0AA"/>
+  <path d="M278 232v124" stroke="#DEE0AA" stroke-width="18" stroke-linecap="round"/>
 </svg>
