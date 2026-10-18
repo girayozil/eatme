@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { DiaryEntry, Food, Meal } from './lib/types'
-import { actions, useData, useLoaded } from './lib/store'
+import { actions, onMigrated, onSyncError, useAuth, useData, useLoaded } from './lib/store'
 import { mealForTime, todayKey } from './lib/logic'
 import { MenuIcon, TodayIcon, TrendsIcon } from './components/Icons'
 import { Today } from './screens/Today'
@@ -10,6 +10,7 @@ import { Settings } from './screens/Settings'
 import { LogSheet } from './screens/LogSheet'
 import { EditEntrySheet } from './screens/EditEntrySheet'
 import { FoodSheet } from './screens/FoodSheet'
+import { SignIn } from './screens/SignIn'
 
 type Tab = 'today' | 'menu' | 'trends'
 
@@ -26,6 +27,7 @@ interface Toast {
 
 export function App() {
   const loaded = useLoaded()
+  const auth = useAuth()
   const { settings } = useData()
   const [tab, setTab] = useState<Tab>('today')
   const [showSettings, setShowSettings] = useState(false)
@@ -49,6 +51,15 @@ export function App() {
     const t = setTimeout(() => setToast(null), toast.undo ? 6000 : 3000)
     return () => clearTimeout(t)
   }, [toast])
+
+  useEffect(() => onSyncError((message) => showToast(message)), [showToast])
+  useEffect(
+    () =>
+      onMigrated((entries, foods) =>
+        showToast(`Moved ${entries} diary ${entries === 1 ? 'entry' : 'entries'} and ${foods} ${foods === 1 ? 'food' : 'foods'} from this phone into your account`),
+      ),
+    [showToast],
+  )
 
   // Appearance: Light, Dark or Auto (follows the phone).
   useEffect(() => {
@@ -111,6 +122,8 @@ export function App() {
     showToast(`Deleted ${food.name}`, () => actions.addFood(food))
   }
 
+  if (auth.state === 'loading') return null
+  if (auth.state === 'signedOut') return <SignIn />
   if (!loaded) return null
 
   return (

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { DiaryEntry, Meal } from '../lib/types'
 import { MEALS } from '../lib/types'
-import { actions, useData } from '../lib/store'
+import { actions, ensureDay, useData } from '../lib/store'
 import { addDays, dayTitle, entryAmountLabel, fmtInt, fmtProtein, longDate, summarizeDay, todayKey } from '../lib/logic'
 import { ChevronLeft, ChevronRight, CloseIcon, PlusIcon, SettingsIcon } from '../components/Icons'
 import { ProteinText } from '../components/Controls'
@@ -17,6 +17,7 @@ interface Props {
 export function Today({ date, setDate, onSettings, onLog, onEdit }: Props) {
   const data = useData()
   const today = todayKey()
+  useEffect(() => ensureDay(date), [date])
   const dayEntries = useMemo(() => data.entries.filter((e) => e.date === date), [data.entries, date])
   const s = summarizeDay(dayEntries)
   const target = data.settings.calorieTarget
@@ -211,8 +212,7 @@ function InstallHint() {
   return (
     <div className="banner" role="note">
       <p>
-        <strong>Add to your Home Screen.</strong> Tap the Share button, then “Add to Home Screen”. It opens like an app and keeps your diary safely on
-        this iPhone.
+        <strong>Add to your Home Screen.</strong> Tap the Share button, then “Add to Home Screen”. It opens full screen, like an app.
       </p>
       <button
         type="button"

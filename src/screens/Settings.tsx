@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import type { Appearance } from '../lib/types'
-import { actions, getData, normalize, useData } from '../lib/store'
+import { actions, fetchAll, normalize, useAuth, useData } from '../lib/store'
 import { fmtInt, parseNum } from '../lib/logic'
 import { exportBackup, exportCsv, looksLikeBackup, openReminder } from '../lib/files'
 import { Segmented, NumberField } from '../components/Controls'
@@ -17,6 +17,7 @@ type Editing = 'calories' | 'protein' | null
 
 export function Settings({ onBack, toast }: { onBack: () => void; toast: (msg: string) => void }) {
   const { settings } = useData()
+  const { email } = useAuth()
   const [editing, setEditing] = useState<Editing>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -27,18 +28,34 @@ export function Settings({ onBack, toast }: { onBack: () => void; toast: (msg: s
   }
 
   const restore = async (file: File) => {
+    let next
     try {
       const parsed = JSON.parse(await file.text())
       if (!looksLikeBackup(parsed)) throw new Error('not a backup')
-      const next = normalize(parsed)
-      const ok = window.confirm(
-        `Replace everything in the app with this backup? It has ${next.foods.length} foods and ${next.entries.length} diary entries. What is in the app now will be lost.`,
-      )
-      if (!ok) return
-      actions.replaceAll(next)
-      toast('Backup restored')
+      next = normalize(parsed)
     } catch {
       window.alert("That file doesn't look like a Calorie Diary backup.")
+      return
+    }
+    const ok = window.confirm(
+      `Replace everything in your account with this backup? It has ${next.foods.length} foods and ${next.entries.length} diary entries. What is in the app now will be lost.`,
+    )
+    if (!ok) return
+    try {
+      toast('Restoring backup…')
+      await actions.replaceAll(next)
+      toast('Backup restored')
+    } catch {
+      toast("Couldn't restore the backup. Check your connection and try again.")
+    }
+  }
+
+  /** Exports read the whole diary from the cloud, so they need a connection. */
+  const withAll = async (fn: (d: Awaited<ReturnType<typeof fetchAll>>) => Promise<void>) => {
+    try {
+      await fn(await fetchAll())
+    } catch {
+      toast("Couldn't fetch your whole diary. Check your connection and try again.")
     }
   }
 
@@ -121,7 +138,7 @@ export function Settings({ onBack, toast }: { onBack: () => void; toast: (msg: s
       <section aria-label="Your data" className="settings-section">
         <h2 className="eyebrow">Your data</h2>
         <div className="group">
-          <button type="button" className="group-row" style={{ minHeight: 64 }} onClick={() => exportCsv(getData())}>
+          <button type="button" className="group-row" style={{ minHeight: 64 }} onClick={() => withAll(exportCsv)}>
             <span className="text">
               Export diary and menu
               <span className="small">Saves spreadsheet files (CSV) you can keep</span>
@@ -130,7 +147,7 @@ export function Settings({ onBack, toast }: { onBack: () => void; toast: (msg: s
               <ChevronRight size={20} />
             </span>
           </button>
-          <button type="button" className="group-row" style={{ minHeight: 64 }} onClick={() => exportBackup(getData())}>
+          <button type="button" className="group-row" style={{ minHeight: 64 }} onClick={() => withAll(exportBackup)}>
             <span className="text">
               Save a backup
               <span className="small">One file with everything, for restoring later</span>
@@ -163,9 +180,32 @@ export function Settings({ onBack, toast }: { onBack: () => void; toast: (msg: s
           }}
         />
         <p className="small">
-          Your diary and menu live only on this iPhone, inside this app. There is no account and nothing is sent anywhere. They are not part of your
-          iCloud backup, so save a backup to Files now and then.
+          Your diary and menu are saved to your private account and kept on this phone for when you're offline. Changes made offline sync when
+          you're back online.
         </p>
+      </section>
+
+      <section aria-label="Account" className="settings-section">
+        <h2 className="eyebrow">Account</h2>
+        <div className="group">
+          <div className="group-row">
+            <span className="text">
+              Signed in
+              <span className="small">{email}</span>
+            </span>
+          </div>
+          <button
+            type="button"
+            className="group-row"
+            onClick={() => {
+              if (window.confirm('Sign out? Your diary stays safe in your account. Sign in again to see it.')) actions.signOut()
+            }}
+          >
+            <span className="text" style={{ color: 'var(--danger)' }}>
+              Sign out
+            </span>
+          </button>
+        </div>
       </section>
 
       <Sheet

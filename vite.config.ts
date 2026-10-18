@@ -32,6 +32,10 @@ export default defineConfig({
       },
     }),
   ],
+  build: {
+    // Firebase makes the bundle about 900 kB; it is cached by the service worker after the first load.
+    chunkSizeWarningLimit: 1200,
+  },
   test: {
     environment: 'node',
   },
